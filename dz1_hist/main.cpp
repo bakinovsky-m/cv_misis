@@ -9,9 +9,9 @@
 using namespace std;
 using namespace cv;
 
-constexpr int BASE = 8;
+constexpr int BASE = 256;
 constexpr int HIST_WIDTH = 500;
-constexpr int HIST_HEIGHT = 250;
+constexpr int HIST_HEIGHT = 300;
 
 
 string type2str(int type) {
@@ -37,42 +37,39 @@ string type2str(int type) {
   return r;
 }
 
-Mat getHistMat(const Mat & chan, Scalar sc = Scalar(255, 255, 255))
+void drawHistOnMat(const vector<Mat> & chans, Mat &dest)
 {
-  vector<int> bchan(BASE, 0);
-  auto it = chan.begin<int>();
-  auto end = chan.end<int>();
-  for(; it != end; ++it)
+  uint8_t ind = 0;
+  for(auto ch : chans)
   {
-    int ind = (*it) % BASE;
-    if (ind != -1 && ind >= 0)
+    vector<int> bchan(BASE, 0);
+    auto it = ch.begin<uint8_t>();
+    auto end = ch.end<uint8_t>();
+    for(; it != end; ++it)
     {
-      bchan[ind] += 1;
+      bchan[*it] += 1;
     }
+
+    int max_el = *max_element(bchan.begin(), bchan.end());
+
+    array<Point, 256> pts;
+
+    for(size_t i = 0; i < bchan.size(); ++ i)
+    {
+      int p = bchan[i];
+
+      int x = static_cast<int>(((HIST_WIDTH/static_cast<double>(BASE)) * i) + HIST_WIDTH/static_cast<double>(bchan.size()) - 2);
+      int y = static_cast<int>(HIST_HEIGHT - (static_cast<double>(p)/max_el)*HIST_HEIGHT);
+      pts[i] = Point(x, y);
+    }
+
+    Vec3i color = {0,0,0};
+    color[ind] = 255;
+    Scalar sc = Scalar(color);
+
+    polylines(dest, pts, false, sc, 2);
+    ++ind;
   }
-
-
-  Mat hist (HIST_HEIGHT, HIST_WIDTH, CV_8UC3, Scalar(255, 255, 255));
-
-
-  int size = bchan.size();
-  int max_el = *max_element(bchan.begin(), bchan.end());
-
-  for(int i = 0; i < size; ++ i)
-  {
-    int p = bchan[i];
-
-    double x1 = (HIST_WIDTH/(double)BASE) * i + 1;
-    double y1 = HIST_HEIGHT;
-    Point p1 = Point(x1, y1);
-
-    double x2 = ((HIST_WIDTH/(double)BASE) * i) + HIST_WIDTH/(double)size - 2;
-    double y2 = HIST_HEIGHT - ((double)p/max_el)*HIST_WIDTH;
-    Point p2 = Point(x2, y2);
-    rectangle(hist, p1, p2, sc, FILLED);
-  }
-
-  return hist;
 }
 
 int main(int argc, char ** argv)
@@ -83,20 +80,21 @@ int main(int argc, char ** argv)
     return -1;
   }
 
+  cout << argv[1] << endl;
+
   Mat img = imread(string(argv[1]));
 
   cout << "type: " << type2str( img.type() ) << endl;
   cout << "channels: " << img.channels() << endl;
 
-  vector<Mat> chans;
+  vector<Mat> chans (static_cast<size_t>(img.channels()));
   split(img, chans);
 
-  imshow("OpenCV1", img);
-  moveWindow("OpenCV1", 0, 100);
-  imshow("OpenCV hist red", getHistMat(chans[0], Scalar(0, 0, 255)));
-  imshow("OpenCV hist green", getHistMat(chans[1], Scalar(0, 255, 0)));
-  moveWindow("OpenCV hist green", 1100, 100);
-  imshow("OpenCV hist blue", getHistMat(chans[2], Scalar(255, 0, 0)));
-  moveWindow("OpenCV hist blue", 500, 100);
+  imshow("OpenCV orig", img);
+  moveWindow("OpenCV orig", 10, 100);
+
+  Mat hist (HIST_HEIGHT, HIST_WIDTH, img.type());
+  drawHistOnMat(chans, hist);
+  imshow("OpenCV hist", hist);
   waitKey();
 }
