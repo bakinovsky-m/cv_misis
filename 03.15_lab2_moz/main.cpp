@@ -19,7 +19,6 @@ int main(int argc, char ** argv)
   if(img.empty())
     return -1;
 
-//  array<Mat, 3> chans;
   vector<Mat> chans;
   split(img, chans);
 
