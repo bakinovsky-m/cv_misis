@@ -157,7 +157,10 @@ double rho(const Mat img, const GL T, const GL n)
 
 int main(int argc, char ** argv){
   if(argc != 2)
+  {
+    cout << "usage: ./grey_lvl_threshold <path_to_image>" << endl;
     return -1;
+  }
 
   Mat img = imread(argv[1]);
   cout << img.type() << endl;
