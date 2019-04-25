@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(moz)
+project(lab2_moz)
 
 find_package(OpenCV REQUIRED)
 

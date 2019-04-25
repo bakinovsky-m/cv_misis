@@ -66,7 +66,7 @@ int main(int argc, char ** argv)
 {
   if(argc != 2)
   {
-    cout << "Usage: ./hist path_to_img" << endl;
+    cout << "Usage: ./intensity_func path_to_img" << endl;
     return -1;
   }
 
