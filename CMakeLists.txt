@@ -1,0 +1,6 @@
+add_subdirectory(02.15_lab1)
+add_subdirectory(03.15_lab2_moz)
+add_subdirectory(dz1_hist)
+add_subdirectory(dz2_intensity_func)
+add_subdirectory(grey_lvl_threshold)
+add_subdirectory(kontra1_filter)
