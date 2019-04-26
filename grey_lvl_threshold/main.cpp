@@ -4,15 +4,17 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include <functional>
-#include <algorithm>
+#include <numeric>
+#include <map>
+#include <chrono>
 
 using namespace cv;
 using namespace std;
 
 using GL = uint8_t;
 
-const GL MAX = 255;
+//const GL MAX = 255;
+const GL MAX = numeric_limits<uint8_t>::max();
 
 static vector<double> PG;
 static bool PG_CACHED = false;
@@ -155,6 +157,17 @@ double rho(const Mat img, const GL T, const GL n)
   return up/bottom;
 }
 
+vector<uint> calcHist(const Mat img)
+{
+  vector<uint> res (256, 0);
+//  uint i = 0;
+  for(auto it = img.begin<GL>(); it != img.end<GL>(); ++it)
+  {
+    res[*it]++;
+  }
+  return res;
+}
+
 int main(int argc, char ** argv){
   if(argc != 2)
   {
@@ -163,31 +176,59 @@ int main(int argc, char ** argv){
   }
 
   Mat img = imread(argv[1]);
-  cout << img.type() << endl;
+
+  vector<uint> hist = calcHist(img);
+
+  uint width = 3;
+  uint height = 512;
+  Mat r = Mat::zeros(height, 256*width, CV_8U);
+  Mat b, g, hist_img;
+  b = Mat::zeros(r.rows, r.cols, CV_8U);
+  g = Mat::zeros(r.rows, r.cols, CV_8U);
+  vector<Mat> channels = {b, g, r};
+  merge(channels, hist_img);
+  for(uint i = 0; i < MAX; ++i)
+  {
+    GL c = hist.at(i);
+    rectangle(hist_img,
+              Point(i*width, height),
+              Point(i*width + width, height - c*(height/MAX)),
+              Scalar(256, 256, 256),
+              FILLED
+              );
+  }
 
   p_g(img, 0);
 
-  int best_T = 0;
+  uint best_T = 0;
   double best_rho = -1;
+  // singlethreaded
+  auto begin = chrono::steady_clock::now();
   for(GL i = 0; i < MAX; ++i)
   {
-    static int counter = 0;
-    double r = rho(img, i, MAX-1);
-    cout << counter++ << " " << r << endl;
-    if (r > best_rho)
+    double cur_rho = rho(img, i, MAX-1);
+    circle(hist_img, Point(i*width, height - 100*(cur_rho)), 3, Scalar(0, 0, 256), -1);
+    if (cur_rho > best_rho)
     {
-      best_rho = r;
+      best_rho = cur_rho;
       best_T = i;
     }
   }
+  auto end = chrono::steady_clock::now();
+
+  cout << "singlehreaded: " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
 
   cout << "best rho: " << best_rho << endl;
   cout << "best T: " << best_T << endl;
+
+  rectangle(hist_img, Point(best_T * width - width/4, 0), Point(best_T * width + width/4, height), Scalar(0, MAX, 0), -1);
+  circle(hist_img, Point(best_T*width, height - 100*(best_rho)), 3, Scalar(0, 0, 256), -1);
 
   Mat new_img;
   threshold(img, new_img, best_T, 255, THRESH_BINARY);
 
   imshow("OpenCV orig", img);
   imshow("OpenCV thresh", new_img);
+  imshow("OpenCV hist", hist_img);
   waitKey(0);
 }
