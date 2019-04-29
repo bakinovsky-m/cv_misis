@@ -177,6 +177,14 @@ int main(int argc, char ** argv){
 
   Mat img = imread(argv[1]);
 
+  if(img.channels() != 1)
+  {
+    cout << "image have more than one channels, will use the first one" << endl;
+    vector<Mat> channels;
+    split(img, channels);
+    img = channels.at(0);
+  }
+
   vector<uint> hist = calcHist(img);
 
   uint width = 3;
@@ -216,7 +224,7 @@ int main(int argc, char ** argv){
   }
   auto end = chrono::steady_clock::now();
 
-  cout << "singlehreaded: " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+  cout << "done in time: " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
 
   cout << "best rho: " << best_rho << endl;
   cout << "best T: " << best_T << endl;
