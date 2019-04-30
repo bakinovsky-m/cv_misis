@@ -239,4 +239,7 @@ int main(int argc, char ** argv){
   imshow("OpenCV thresh", new_img);
   imshow("OpenCV hist", hist_img);
   waitKey(0);
+  imwrite("orig.png", img);
+  imwrite("bin.png", new_img);
+  imwrite("hist.png", hist_img);
 }
