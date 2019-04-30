@@ -13,7 +13,6 @@ using namespace std;
 
 using GL = uint8_t;
 
-//const GL MAX = 255;
 const GL MAX = numeric_limits<uint8_t>::max();
 
 static vector<double> PG;
@@ -157,7 +156,7 @@ double rho(const Mat img, const GL T, const GL n)
   return up/bottom;
 }
 
-vector<uint> calcHist(const Mat img)
+vector<uint> myCalcHist(const Mat img)
 {
   vector<uint> res (256, 0);
 //  uint i = 0;
@@ -185,7 +184,7 @@ int main(int argc, char ** argv){
     img = channels.at(0);
   }
 
-  vector<uint> hist = calcHist(img);
+  vector<uint> hist = myCalcHist(img);
 
   uint width = 3;
   uint height = 512;
@@ -195,15 +194,25 @@ int main(int argc, char ** argv){
   g = Mat::zeros(r.rows, r.cols, CV_8U);
   vector<Mat> channels = {b, g, r};
   merge(channels, hist_img);
-  for(uint i = 0; i < MAX; ++i)
+
+
+  Mat histt;
+  const int chans = img.channels();
+  int histSize = 256;
+  float range[] = { 0, 256 }; //the upper boundary is exclusive
+  const float* histRange = { range };
+  calcHist(&img, 1, 0, Mat(), histt, 1, &histSize, &histRange);
+
+  uint hist_h = 512;
+  uint hist_w = 1024;
+  uint bin_w = 4;
+  Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+  normalize(histt, histt, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+  for( int i = 1; i < histSize; i++ )
   {
-    GL c = hist.at(i);
-    rectangle(hist_img,
-              Point(i*width, height),
-              Point(i*width + width, height - c*(height/MAX)),
-              Scalar(256, 256, 256),
-              FILLED
-              );
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(histt.at<float>(i-1)) ),
+            Point( bin_w*(i), hist_h - cvRound(histt.at<float>(i)) ),
+            Scalar( 255, 255, 255), 2, 8, 0  );
   }
 
   p_g(img, 0);
@@ -215,7 +224,8 @@ int main(int argc, char ** argv){
   for(GL i = 0; i < MAX; ++i)
   {
     double cur_rho = rho(img, i, MAX-1);
-    circle(hist_img, Point(i*width, height - 100*(cur_rho)), 3, Scalar(0, 0, 256), -1);
+//    circle(hist_img, Point(i*width, height - 100*(cur_rho)), 3, Scalar(0, 0, 256), -1);
+    circle(histImage, Point(i*bin_w, hist_h - 100*(cur_rho)), 3, Scalar(0, 0, 256), -1);
     if (cur_rho > best_rho)
     {
       best_rho = cur_rho;
@@ -229,15 +239,16 @@ int main(int argc, char ** argv){
   cout << "best rho: " << best_rho << endl;
   cout << "best T: " << best_T << endl;
 
-  rectangle(hist_img, Point(best_T * width - width/4, 0), Point(best_T * width + width/4, height), Scalar(0, MAX, 0), -1);
-  circle(hist_img, Point(best_T*width, height - 100*(best_rho)), 3, Scalar(0, 0, 256), -1);
+  rectangle(histImage, Point(best_T * bin_w - bin_w/4, 0), Point(best_T * bin_w + bin_w/4, hist_h), Scalar(0, MAX, 0), -1);
+  circle(histImage, Point(best_T*bin_w, hist_h - 100*(best_rho)), 3, Scalar(0, 0, 256), -1);
 
   Mat new_img;
   threshold(img, new_img, best_T, 255, THRESH_BINARY);
 
   imshow("OpenCV orig", img);
   imshow("OpenCV thresh", new_img);
-  imshow("OpenCV hist", hist_img);
+//  imshow("OpenCV hist1", hist_img);
+  imshow("OpenCV hist", histImage);
   waitKey(0);
   imwrite("orig.png", img);
   imwrite("bin.png", new_img);
