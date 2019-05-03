@@ -25,7 +25,7 @@ double p_g_compute(const Mat img, const GL g){
     if(*it == g)
       res++;
   }
-  return res/(img.cols * img.rows);
+  return res/img.total();
 }
 
 double p_g(const Mat img, const GL g)
@@ -117,21 +117,19 @@ double E_xx(const Mat img, const GL n)
 
 double E_yy(const Mat img, const GL T, const GL n)
 {
-  vector<double> cache;
   double a = 0;
   for(GL g = 0; g <= T; ++g)
   {
     double mu = mu0_T(img, T);
     double pg = p_g(img, g);
     a += mu*mu * pg;
-    cache.push_back(pg);
   }
 
   double b = 0;
-  for(GL g = 0; g <= T; ++g)
+  for(GL g = T+1; g < n; ++g)
   {
     double mu = mu1_T(img, T, n);
-    double pg = cache.at(g);
+    double pg = p_g(img, g);
     b += mu*mu * pg;
   }
   return a + b;
@@ -152,14 +150,14 @@ double V_y_T(const Mat img, const GL T, const GL n)
 double rho(const Mat img, const GL T, const GL n)
 {
   double up = E_xy_T(img, T, n) - E_x(img, n) * E_y_T(img, T, n);
-  double bottom = pow(V_x(img, n) * V_y_T(img, T, n), 0.5);
+  double pow_arg = V_x(img, n) * V_y_T(img, T, n);
+  double bottom = pow(pow_arg, 0.5);
   return up/bottom;
 }
 
 vector<uint> myCalcHist(const Mat img)
 {
   vector<uint> res (256, 0);
-//  uint i = 0;
   for(auto it = img.begin<GL>(); it != img.end<GL>(); ++it)
   {
     res[*it]++;
@@ -184,7 +182,7 @@ int main(int argc, char ** argv){
     img = channels.at(0);
   }
 
-  vector<uint> hist = myCalcHist(img);
+//  vector<uint> hist = myCalcHist(img);
 
   uint width = 3;
   uint height = 512;
@@ -201,12 +199,12 @@ int main(int argc, char ** argv){
   int histSize = 256;
   float range[] = { 0, 256 }; //the upper boundary is exclusive
   const float* histRange = { range };
-  calcHist(&img, 1, 0, Mat(), histt, 1, &histSize, &histRange);
+  calcHist(&img, 1, nullptr, Mat(), histt, 1, &histSize, &histRange);
 
   uint hist_h = 512;
   uint hist_w = 1024;
   uint bin_w = 4;
-  Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+  Mat histImage(hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
   normalize(histt, histt, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
   for( int i = 1; i < histSize; i++ )
   {
@@ -224,6 +222,7 @@ int main(int argc, char ** argv){
   for(GL i = 0; i < MAX; ++i)
   {
     double cur_rho = rho(img, i, MAX-1);
+//    cout << cur_rho << endl;
 //    circle(hist_img, Point(i*width, height - 100*(cur_rho)), 3, Scalar(0, 0, 256), -1);
     circle(histImage, Point(i*bin_w, hist_h - 100*(cur_rho)), 3, Scalar(0, 0, 256), -1);
     if (cur_rho > best_rho)
