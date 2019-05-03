@@ -171,8 +171,9 @@ int main(int argc, char ** argv){
     cout << "usage: ./grey_lvl_threshold <path_to_image>" << endl;
     return -1;
   }
+  string filename = argv[1];
 
-  Mat img = imread(argv[1]);
+  Mat img = imread(filename);
 
   if(img.channels() != 1)
   {
@@ -249,7 +250,7 @@ int main(int argc, char ** argv){
 //  imshow("OpenCV hist1", hist_img);
   imshow("OpenCV hist", histImage);
   waitKey(0);
-  imwrite("orig.png", img);
-  imwrite("bin.png", new_img);
-  imwrite("hist.png", hist_img);
+  imwrite(filename + "_orig.png", img);
+  imwrite(filename + "_bin.png", new_img);
+  imwrite(filename + "_hist.png", histImage);
 }
