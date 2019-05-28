@@ -18,9 +18,10 @@ const GL MAX = numeric_limits<uint8_t>::max();
 static vector<double> PG;
 static bool PG_CACHED = false;
 
-double p_g_compute(const Mat img, const GL g){
+double p_g_compute(const Mat &img, const GL g){
   double res = 0;
-  for(auto it = img.begin<GL>(); it != img.end<GL>(); ++it)
+  auto qwe = img.end<GL>();
+  for(auto it = img.begin<GL>(); it != qwe; ++it)
   {
     if(*it == g)
       res++;
@@ -28,7 +29,7 @@ double p_g_compute(const Mat img, const GL g){
   return res/img.total();
 }
 
-double p_g(const Mat img, const GL g)
+double p_g(const Mat &img, const GL g)
 {
   if(PG_CACHED)
     return PG.at(g);
@@ -36,6 +37,7 @@ double p_g(const Mat img, const GL g)
     cout << "full compute started" << endl;
     for(GL i = 0; i < MAX; ++i)
     {
+      cout << int(i) << "/" << int(MAX) << endl;
       PG.push_back(p_g_compute(img, i));
     }
     PG_CACHED = true;
@@ -44,27 +46,29 @@ double p_g(const Mat img, const GL g)
   return PG.at(g);
 }
 
-double mu0_T(const Mat img, const GL T) {
+double mu0_T(const Mat &img, const GL T) {
   double up = 0;
   double bottom = 0;
   for (GL g = 0; g <= T; ++g) {
-    up += g * p_g(img, g);
-    bottom += p_g(img, g);
+    auto pg = p_g(img, g);
+    up += g * pg;
+    bottom += pg;
   }
   return up/bottom;
 }
 
-double mu1_T(const Mat img, const GL T, const GL n) {
+double mu1_T(const Mat &img, const GL T, const GL n) {
   double up = 0;
   double bottom = 0;
   for (GL g = T + 1; g <= n; ++g) {
-    up += g * p_g(img, g);
-    bottom += p_g(img, g);
+    auto pg = p_g(img, g);
+    up += g * pg;
+    bottom += pg;
   }
   return up/bottom;
 }
 
-double E_x(const Mat img, const GL n) {
+double E_x(const Mat &img, const GL n) {
   double res = 0;
   for(GL g = 0; g <= n; ++g)
   {
@@ -73,7 +77,7 @@ double E_x(const Mat img, const GL n) {
   return res;
 }
 
-double E_y_T(const Mat img, const GL T, const GL n)
+double E_y_T(const Mat &img, const GL T, const GL n)
 {
   double a = 0;
   for(GL g = 0; g <= T; ++g)
@@ -89,7 +93,7 @@ double E_y_T(const Mat img, const GL T, const GL n)
   return a + b;
 }
 
-double E_xy_T(const Mat img, const GL T, const GL n)
+double E_xy_T(const Mat &img, const GL T, const GL n)
 {
   double a = 0;
   for(GL g = 0; g <= T; ++g)
@@ -105,7 +109,7 @@ double E_xy_T(const Mat img, const GL T, const GL n)
   return a + b;
 }
 
-double E_xx(const Mat img, const GL n)
+double E_xx(const Mat &img, const GL n)
 {
   double res = 0;
   for(GL g = 0; g <= n; ++g)
@@ -115,7 +119,7 @@ double E_xx(const Mat img, const GL n)
   return res;
 }
 
-double E_yy(const Mat img, const GL T, const GL n)
+double E_yy(const Mat &img, const GL T, const GL n)
 {
   double a = 0;
   for(GL g = 0; g <= T; ++g)
@@ -135,19 +139,19 @@ double E_yy(const Mat img, const GL T, const GL n)
   return a + b;
 }
 
-double V_x(const Mat img, const GL n)
+double V_x(const Mat &img, const GL n)
 {
   double e = E_x(img, n);
   return E_xx(img, n) - e*e;
 }
 
-double V_y_T(const Mat img, const GL T, const GL n)
+double V_y_T(const Mat &img, const GL T, const GL n)
 {
   double e = E_y_T(img, T, n);
   return E_yy(img, T, n) - e*e;
 }
 
-double rho(const Mat img, const GL T, const GL n)
+double rho(const Mat &img, const GL T, const GL n)
 {
   double up = E_xy_T(img, T, n) - E_x(img, n) * E_y_T(img, T, n);
   double pow_arg = V_x(img, n) * V_y_T(img, T, n);
@@ -155,7 +159,7 @@ double rho(const Mat img, const GL T, const GL n)
   return up/bottom;
 }
 
-vector<uint> myCalcHist(const Mat img)
+vector<uint> myCalcHist(const Mat &img)
 {
   vector<uint> res (256, 0);
   for(auto it = img.begin<GL>(); it != img.end<GL>(); ++it)
